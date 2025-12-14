@@ -4,10 +4,17 @@ import User from "../models/User.model.js";
 
 const signToken = (user) =>
   jwt.sign(
-    { id: user._id.toString(), role: user.role, clinicId: user.clinicId || null },
+    {
+      id: user._id.toString(),
+      role: user.role,
+      clinicId: user.role === "CLINIC" ? user._id.toString() : null, // ✅ here
+    },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+    { expiresIn: "7d" }
   );
+
+
+
 
 // POST /api/auth/register
 export const register = async (req, res) => {
@@ -24,12 +31,13 @@ export const register = async (req, res) => {
     const passwordHash = await bcrypt.hash(String(password), 10);
 
     const user = await User.create({
-      name,
-      email: email.toLowerCase().trim(),
-      passwordHash,
-      role, // ADMIN / CLINIC / PARENT
-      clinicId: clinicId || null,
-    });
+  name,
+  email: email.toLowerCase().trim(),
+  passwordHash,
+  role,
+  clinicId: role === "CLINIC" ? String(clinicId) : null,
+});
+
 
     const token = signToken(user);
 

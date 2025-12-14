@@ -1,4 +1,6 @@
 export default function requireClinic(req, res, next) {
+  console.log("req.user:", req.user);
+
   if (!req.user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
   if (req.user.role !== "CLINIC") {

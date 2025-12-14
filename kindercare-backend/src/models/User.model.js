@@ -6,10 +6,10 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["PARENT", "CLINIC", "ADMIN"], required: true },
-   
+    clinicId: { type: String, default: null },
   },
   { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);
-export default User;   // ✅ IMPORTANT
+export default User;   // IMPORTANT
