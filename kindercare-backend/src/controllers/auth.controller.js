@@ -57,7 +57,7 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    if (!user.isActive) return res.status(403).json({ success: false, message: "Account disabled" });
+   
 
     const ok = await bcrypt.compare(String(password), user.passwordHash);
     if (!ok) return res.status(401).json({ success: false, message: "Invalid credentials" });

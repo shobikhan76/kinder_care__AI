@@ -1,9 +1,14 @@
 import Child from "../models/Child.model.js";
 import Case from "../models/Case.model.js";
 
+// POST /api/parent/cases
 export const createCase = async (req, res) => {
   const parentId = req.user.id;
-  const { childId, symptoms, severity, duration, inputType } = req.body;
+  const { childId, clinicId, symptoms, severity, duration, inputType } = req.body;
+
+  if (!clinicId) {
+    return res.status(400).json({ success: false, message: "clinicId is required" });
+  }
 
   // Ownership check: child must belong to logged-in parent
   const child = await Child.findOne({ _id: childId, parentId });
@@ -12,23 +17,28 @@ export const createCase = async (req, res) => {
   const c = await Case.create({
     parentId,
     childId,
+    clinicId , 
+
     symptoms,
     severity,
     duration,
     inputType: inputType || "text",
-    status: "SUBMITTED",
+
+    status: "SUBMITTED", // ✅ parent always starts with submitted
   });
 
   return res.status(201).json({ success: true, data: c });
 };
 
+// GET /api/parent/cases
 export const listCases = async (req, res) => {
   const parentId = req.user.id;
-  const { status, childId, page = 1, limit = 10 } = req.query;
+  const { status, childId, clinicId, page = 1, limit = 10 } = req.query;
 
   const query = { parentId };
   if (status) query.status = status;
   if (childId) query.childId = childId;
+  if (clinicId) query.clinicId = String(clinicId);
 
   const skip = (Number(page) - 1) * Number(limit);
 
@@ -44,6 +54,7 @@ export const listCases = async (req, res) => {
   });
 };
 
+// GET /api/parent/cases/:caseId
 export const getCase = async (req, res) => {
   const parentId = req.user.id;
   const { caseId } = req.params;
@@ -54,7 +65,7 @@ export const getCase = async (req, res) => {
   return res.json({ success: true, data: c });
 };
 
-// Optional: allow parent to cancel their case if still not closed
+// PATCH /api/parent/cases/:caseId/cancel
 export const cancelCase = async (req, res) => {
   const parentId = req.user.id;
   const { caseId } = req.params;

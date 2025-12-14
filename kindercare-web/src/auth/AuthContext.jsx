@@ -1,47 +1,40 @@
-import React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
-import { api } from "../api/http";
+import { jwtDecode } from "jwt-decode";
 
-const AuthCtx = createContext(null);
+
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // {id,email,role,name}
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // If token exists but user is not stored, keep it simple for MVP:
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-    setLoading(false);
-  }, []);
+    if (!token) {
+      setUser(null);
+      return;
+    }
+    try {
+      const payload = jwtDecode(token);
+      setUser({ id: payload.id, role: payload.role, clinicId: payload.clinicId });
+    } catch {
+      localStorage.removeItem("token");
+      setToken("");
+      setUser(null);
+    }
+  }, [token]);
 
-  const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-    setUser(res.data.user);
-  };
-
-  const register = async (name, email, password, role) => {
-    const res = await api.post("/auth/register", { name, email, password, role });
-    localStorage.setItem("token", res.data.token);
-    localStorage.setItem("user", JSON.stringify(res.data.user));
-    setUser(res.data.user);
+  const login = (jwt) => {
+    localStorage.setItem("token", jwt);
+    setToken(jwt);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    setToken("");
     setUser(null);
   };
 
-  return (
-    <AuthCtx.Provider value={{ user, loading, login, register, logout }}>
-      {children}
-    </AuthCtx.Provider>
-  );
+  return <AuthContext.Provider value={{ token, user, login, logout }}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  return useContext(AuthCtx);
-}
+export const useAuth = () => useContext(AuthContext);

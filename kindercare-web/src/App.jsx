@@ -1,69 +1,43 @@
-import { Link, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./auth/AuthContext";
-import ProtectedRoute from "./auth/ProtectedRoute";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./auth/AuthContext.jsx";
+import ProtectedRoute from "./auth/ProtectedRoute.jsx";
+import RoleRoute from "./auth/RoleRoute.jsx";
+import Navbar from "./components/Navbar.jsx";
 
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
-import ParentIntake from "./pages/ParentIntake.jsx";
-import ClinicDashboard from "./pages/ClinicDashboard.jsx";
-import CaseDetail from "./pages/CaseDetail.jsx";
+// auth
+import Login from "./pages/auth/Login.jsx";
+import Register from "./pages/auth/Register.jsx";
+
+// parent
+import ParentDashboard from "./pages/parent/ParentDashboard.jsx";
+import Children from "./pages/parent/Children.jsx";
+import Cases from "./pages/parent/Cases.jsx";
+import CaseDetail from "./pages/parent/CaseDetail.jsx";
+import Appointments from "./pages/parent/Appointments.jsx";
+
+// clinic
+import ClinicDashboard from "./pages/clinic/ClinicDashboard.jsx";
+import ClinicCases from "./pages/clinic/ClinicCases.jsx";
+import ClinicCaseDetail from "./pages/clinic/ClinicCaseDetail.jsx";
+import ClinicAppointments from "./pages/clinic/ClinicAppointments.jsx";
+
+// admin
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+
+function HomeRedirect() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+
+  if (user.role === "PARENT") return <Navigate to="/parent" replace />;
+  if (user.role === "CLINIC") return <Navigate to="/clinic" replace />;
+  if (user.role === "ADMIN") return <Navigate to="/admin" replace />;
+  return <Navigate to="/login" replace />;
+}
 
 export default function App() {
-  const { user, logout } = useAuth();
-
   return (
-    <div style={{ fontFamily: "Arial", padding: 16 }}>
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link to="/">Home</Link>
-
-          {user?.role === "Parent" && <Link to="/parent">Parent Intake</Link>}
-
-          {(user?.role === "Clinic" || user?.role === "Admin") && (
-            <Link to="/clinic">Clinic Dashboard</Link>
-          )}
-        </div>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {user ? (
-            <>
-              <span>
-                {user.email} ({user.role})
-              </span>
-              <button onClick={logout}>Logout</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* Global disclaimer banner (clinic-safe) */}
-      {user && (
-        <div
-          style={{
-            background: "#fffbe6",
-            border: "1px solid #ffe58f",
-            padding: 10,
-            borderRadius: 10,
-            marginBottom: 14,
-            color: "#614700",
-          }}
-        >
-          KinderCare AI provides decision-support only and does not replace
-          clinical judgment.
-          <b> This is not a diagnosis.</b>
-        </div>
-      )}
+    <>
+      <Navbar />
 
       <Routes>
         <Route path="/" element={<HomeRedirect />} />
@@ -71,44 +45,55 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* Parent nested */}
         <Route
           path="/parent"
           element={
-            <ProtectedRoute roles={["Parent", "Admin"]}>
-              <ParentIntake />
+            <ProtectedRoute>
+              <RoleRoute allow={["PARENT"]}>
+                <ParentDashboard />
+              </RoleRoute>
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<div style={{ padding: 10 }}>Parent Dashboard</div>} />
+          <Route path="children" element={<Children />} />
+          <Route path="cases" element={<Cases />} />
+          <Route path="cases/:caseId" element={<CaseDetail />} />
+          <Route path="appointments" element={<Appointments />} />
+        </Route>
 
+        {/* Clinic nested */}
         <Route
           path="/clinic"
           element={
-            <ProtectedRoute roles={["Clinic", "Admin"]}>
-              <ClinicDashboard />
+            <ProtectedRoute>
+              <RoleRoute allow={["CLINIC"]}>
+                <ClinicDashboard />
+              </RoleRoute>
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<div style={{ padding: 10 }}>Clinic Dashboard</div>} />
+          <Route path="cases" element={<ClinicCases />} />
+          <Route path="cases/:caseId" element={<ClinicCaseDetail />} />
+          <Route path="appointments" element={<ClinicAppointments />} />
+        </Route>
 
-        {/* ✅ Clinic + Parent both use this detail route */}
+        {/* Admin */}
         <Route
-          path="/cases/:id"
+          path="/admin"
           element={
-            <ProtectedRoute roles={["Parent", "Clinic", "Admin"]}>
-              <CaseDetail />
+            <ProtectedRoute>
+              <RoleRoute allow={["ADMIN"]}>
+                <AdminDashboard />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+    </>
   );
-}
-
-function HomeRedirect() {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (user.role === "Parent") return <Navigate to="/parent" replace />;
-  return <Navigate to="/clinic" replace />;
 }
