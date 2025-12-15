@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getCase, cancelCase } from "../../api/parent.api.js";
+import { getCase, cancelCase, listClinics } from "../../api/parent.api.js";
 import Loader from "../../components/Loader.jsx";
 
-// Status badge styling — consistent across app
+// Status badge styling – consistent across app
 const getStatusColor = (status) => {
   switch (status) {
     case "OPEN": return "bg-green-100 text-green-800";
@@ -27,9 +27,15 @@ const getSeverityColor = (severity) => {
   }
 };
 
+const getClinicName = (clinicId, clinics) => {
+  const match = clinics.find((c) => c.clinicId === clinicId);
+  return match?.clinicName || clinicId || "-";
+};
+
 export default function CaseDetail() {
   const { caseId } = useParams();
   const [data, setData] = useState(null);
+  const [clinics, setClinics] = useState([]);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -37,8 +43,9 @@ export default function CaseDetail() {
     setErr("");
     setLoading(true);
     try {
-      const res = await getCase(caseId);
-      setData(res.data.data);
+      const [caseRes, clinicRes] = await Promise.all([getCase(caseId), listClinics()]);
+      setData(caseRes.data.data);
+      setClinics(clinicRes.data.data || []);
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load case details");
     } finally {
@@ -114,7 +121,7 @@ export default function CaseDetail() {
             </div>
             <div>
               <span className="font-medium text-gray-700">Clinic:</span>{" "}
-              <span className="text-gray-900 ml-1">{data.clinicId || "—"} </span>
+              <span className="text-gray-900 ml-1">{getClinicName(data.clinicId, clinics)}</span>
             </div>
             <div>
               <span className="font-medium text-gray-700">Created:</span>{" "}
@@ -124,7 +131,7 @@ export default function CaseDetail() {
             </div>
             <div>
               <span className="font-medium text-gray-700">Duration:</span>{" "}
-              <span className="text-gray-900 ml-1">{data.duration || "—"}</span>
+              <span className="text-gray-900 ml-1">{data.duration || "-"}</span>
             </div>
           </div>
 
@@ -152,8 +159,8 @@ export default function CaseDetail() {
             <div className="border-t border-gray-100 pt-4 mb-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Child Information</h3>
               <p className="text-gray-900">
-                <span className="font-medium">{data.childId.name}</span> —{" "}
-                {Math.floor(data.childId.ageMonths / 12)}y {data.childId.ageMonths % 12}m —{" "}
+                <span className="font-medium">{data.childId.name}</span>{" "}
+                {Math.floor(data.childId.ageMonths / 12)}y {data.childId.ageMonths % 12}m{" "}
                 {data.childId.gender}
               </p>
             </div>

@@ -4,7 +4,9 @@ import {
   requestAppointment,
   cancelAppointment,
   listChildren,
+
 } from "../../api/parent.api.js";
+import { listClinics } from "../../api/clinic.api.js";
 import Loader from "../../components/Loader.jsx";
 
 // Helper: format datetime for input
@@ -26,10 +28,15 @@ const getStatusColor = (status) => {
   }
 };
 
+const getClinicName = (clinicId, clinics) => {
+  const match = clinics.find((c) => c.clinicId === clinicId);
+  return match?.clinicName || clinicId;
+};
+
 export default function Appointments() {
   const [items, setItems] = useState([]);
   const [children, setChildren] = useState([]);
-
+  const [clinics , setClinics] = useState([])
   const [childId, setChildId] = useState("");
   const [clinicId, setClinicId] = useState("");
   const [slot1, setSlot1] = useState("");
@@ -42,12 +49,16 @@ export default function Appointments() {
     setErr("");
     setLoading(true);
     try {
-      const [a, c] = await Promise.all([listAppointments(), listChildren()]);
+      const [a, c , cl] = await Promise.all([listAppointments(), listChildren() , listClinics()]);
       setItems(a.data.data || []);
       setChildren(c.data.data || []);
+      setClinics(cl.data.data || []); 
       if (c.data.data.length > 0 && !childId) {
         setChildId(c.data.data[0]._id); // auto-select first child
       }
+        if ((cl.data.data || []).length > 0 && !clinicId) {
+      setClinicId(cl.data.data[0].clinicId);
+    }
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load your data");
     } finally {
@@ -64,7 +75,7 @@ export default function Appointments() {
     setErr("");
 
     if (!childId || !clinicId || !slot1) {
-      setErr("Please select a child, enter a clinic ID, and choose at least one time slot.");
+      setErr("Please select a child, enter a clinic Name, and choose at least one time slot.");
       return;
     }
 
@@ -75,7 +86,7 @@ export default function Appointments() {
 
       await requestAppointment({ childId, clinicId, preferredSlots });
       setChildId(children.length > 0 ? children[0]._id : "");
-      setClinicId("");
+      setClinicId(clinics.length > 0 ? clinics[0].clinicId : "");
       setSlot1("");
       setSlot2("");
       load();
@@ -159,20 +170,28 @@ export default function Appointments() {
           {/* Clinic ID */}
           <div>
             <label htmlFor="clinicId" className="block text-sm font-medium text-gray-700 mb-1">
-              Clinic ID
+             Set Clinic
             </label>
-            <input
-              id="clinicId"
-              type="text"
-              placeholder="e.g. clinic_karachi_01"
-              value={clinicId}
-              onChange={(e) => setClinicId(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Provided by your clinic or found in their KinderCare AI profile
-            </p>
+            {clinics.length == 0 ? (<div>
+<p className="text-sm text-gray-500 italic">
+  No clinic available right now 
+</p>
+            </div>
+            ): (
+              <select  id="clinicId" value={clinicId} onChange={(e)=>{setClinicId(e.target.value)}}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded focus:ring-required"
+              >
+                <option value=""> Choose a Clinic </option>
+                {clinics.map((cl)=> (
+                  <option key={cl.clinicId} value={cl.clinicId}>{cl.clinicName}</option>
+                ))}
+              </select>
+            )
+            }
+           <p className="mt-1 text-xs text-gray-500">
+    Choose clinic by name (system will send clinicId automatically)
+  </p>
+           
           </div>
 
           {/* Time Slots */}
@@ -242,7 +261,7 @@ export default function Appointments() {
                     {a.status}
                   </span>
                   <span className="text-sm text-gray-600">
-                    <span className="font-medium">Clinic:</span> {a.clinicId}
+                    <span className="font-medium">Clinic:</span> {getClinicName(a.clinicId, clinics)}
                   </span>
                 </div>
 

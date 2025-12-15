@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Appointment from "../models/Appointment.model.js";
 
 export const listClinicAppointments = async (req, res) => {
@@ -5,7 +6,11 @@ export const listClinicAppointments = async (req, res) => {
     const clinicId = req.user.clinicId;
     const { status, page = 1, limit = 20 } = req.query;
 
-    const query = { clinicId };
+    const clinicMatch = mongoose.Types.ObjectId.isValid(clinicId)
+      ? [{ clinicId }, { clinicId: new mongoose.Types.ObjectId(clinicId) }]
+      : [{ clinicId }];
+
+    const query = { $or: clinicMatch };
     if (status) query.status = status;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -36,8 +41,12 @@ export const approveAppointment = async (req, res) => {
     const { id } = req.params;
     const { confirmedSlot, clinicMessage } = req.body;
 
+    const clinicMatch = mongoose.Types.ObjectId.isValid(clinicId)
+      ? { $or: [{ clinicId }, { clinicId: new mongoose.Types.ObjectId(clinicId) }] }
+      : { clinicId };
+
     const appt = await Appointment.findOneAndUpdate(
-      { _id: id, clinicId },
+      { _id: id, ...clinicMatch },
       { $set: { status: "CONFIRMED", confirmedSlot, clinicMessage } },
       { new: true }
     );
@@ -55,8 +64,12 @@ export const rescheduleAppointment = async (req, res) => {
     const { id } = req.params;
     const { confirmedSlot, clinicMessage } = req.body;
 
+    const clinicMatch = mongoose.Types.ObjectId.isValid(clinicId)
+      ? { $or: [{ clinicId }, { clinicId: new mongoose.Types.ObjectId(clinicId) }] }
+      : { clinicId };
+
     const appt = await Appointment.findOneAndUpdate(
-      { _id: id, clinicId },
+      { _id: id, ...clinicMatch },
       { $set: { status: "RESCHEDULED", confirmedSlot, clinicMessage } },
       { new: true }
     );
@@ -74,8 +87,12 @@ export const cancelAppointmentByClinic = async (req, res) => {
     const { id } = req.params;
     const { clinicMessage } = req.body;
 
+    const clinicMatch = mongoose.Types.ObjectId.isValid(clinicId)
+      ? { $or: [{ clinicId }, { clinicId: new mongoose.Types.ObjectId(clinicId) }] }
+      : { clinicId };
+
     const appt = await Appointment.findOneAndUpdate(
-      { _id: id, clinicId },
+      { _id: id, ...clinicMatch },
       { $set: { status: "CANCELLED", clinicMessage } },
       { new: true }
     );

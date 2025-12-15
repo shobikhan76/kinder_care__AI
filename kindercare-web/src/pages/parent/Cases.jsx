@@ -4,6 +4,7 @@ import {
   createCase,
   listCases,
   listChildren,
+  listClinics,
 } from "../../api/parent.api.js";
 import Loader from "../../components/Loader.jsx";
 
@@ -31,9 +32,15 @@ const getSeverityColor = (severity) => {
   }
 };
 
+const getClinicName = (clinicId, clinics) => {
+  const match = clinics.find((c) => c.clinicId === clinicId);
+  return match?.clinicName || clinicId;
+};
+
 export default function Cases() {
   const [children, setChildren] = useState([]);
   const [items, setItems] = useState([]);
+  const [clinics, setClinics] = useState([]);
 
   const [childId, setChildId] = useState("");
   const [clinicId, setClinicId] = useState("");
@@ -48,11 +55,15 @@ export default function Cases() {
     setErr("");
     setLoading(true);
     try {
-      const [c, ch] = await Promise.all([listCases(), listChildren()]);
+      const [c, ch, cl] = await Promise.all([listCases(), listChildren(), listClinics()]);
       setItems(c.data.data || []);
       setChildren(ch.data.data || []);
+      setClinics(cl.data.data || []);
       if (ch.data.data.length > 0 && !childId) {
         setChildId(ch.data.data[0]._id); // auto-select first child
+      }
+      if ((cl.data.data || []).length > 0 && !clinicId) {
+        setClinicId(cl.data.data[0].clinicId);
       }
     } catch (e) {
       setErr(e?.response?.data?.message || "Failed to load your data");
@@ -75,7 +86,7 @@ export default function Cases() {
       .filter(Boolean);
 
     if (!childId || !clinicId || cleanSymptoms.length === 0 || !duration.trim()) {
-      setErr("Please select a child, enter a clinic ID, describe at least one symptom, and specify duration.");
+      setErr("Please select a child, choose a clinic, describe at least one symptom, and specify duration.");
       return;
     }
 
@@ -161,22 +172,33 @@ export default function Cases() {
             )}
           </div>
 
-          {/* Clinic ID */}
+          {/* Clinic Selection */}
           <div>
             <label htmlFor="clinicId" className="block text-sm font-medium text-gray-700 mb-1">
-              Clinic ID
+              Choose Clinic
             </label>
-            <input
-              id="clinicId"
-              type="text"
-              placeholder="e.g. clinic_karachi_01"
-              value={clinicId}
-              onChange={(e) => setClinicId(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+            {clinics.length === 0 ? (
+              <p className="text-sm text-gray-500 italic">
+                No clinics available right now.
+              </p>
+            ) : (
+              <select
+                id="clinicId"
+                value={clinicId}
+                onChange={(e) => setClinicId(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select a clinic</option>
+                {clinics.map((cl) => (
+                  <option key={cl.clinicId} value={cl.clinicId}>
+                    {cl.clinicName}
+                  </option>
+                ))}
+              </select>
+            )}
             <p className="mt-1 text-xs text-gray-500">
-              Provided by your clinic or found in their KinderCare AI profile
+              Choose the clinic to send this case to (clinic ID is handled automatically).
             </p>
           </div>
 
@@ -287,7 +309,7 @@ export default function Cases() {
 
                 <div className="text-sm text-gray-700 space-y-1 mb-3">
                   <div>
-                    <span className="font-medium">Clinic:</span> {c.clinicId}
+                    <span className="font-medium">Clinic:</span> {getClinicName(c.clinicId, clinics)}
                   </div>
                   <div>
                     <span className="font-medium">Created:</span> {new Date(c.createdAt).toLocaleString()}

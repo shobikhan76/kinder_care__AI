@@ -5,7 +5,8 @@ const appointmentSchema = new mongoose.Schema(
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     childId: { type: mongoose.Schema.Types.ObjectId, ref: "Child", required: true, index: true },
     caseId: { type: mongoose.Schema.Types.ObjectId, ref: "Case" }, // optional link
-    clinicId: { type: mongoose.Schema.Types.ObjectId, ref: "Clinic", required: true, index: true },
+    // Store clinic identifier as string to align with user IDs returned by public clinic listing
+    clinicId: { type: String, required: true, index: true },
 
     preferredSlots: [{ type: Date, required: true }],
 confirmedSlot: { type: Date }, // optional

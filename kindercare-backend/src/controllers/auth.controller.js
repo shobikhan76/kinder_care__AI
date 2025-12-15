@@ -11,6 +11,7 @@ const signToken = (user) =>
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
+
   );
 
 
@@ -52,6 +53,7 @@ export const register = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // POST /api/auth/login
 export const login = async (req, res) => {

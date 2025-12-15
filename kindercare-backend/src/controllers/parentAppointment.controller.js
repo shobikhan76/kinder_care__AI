@@ -22,7 +22,6 @@ export const requestAppointment = async (req, res) => {
     caseId: caseId || undefined,
     status: "REQUESTED",
   });
-
   return res.status(201).json({ success: true, data: appt });
 };
 

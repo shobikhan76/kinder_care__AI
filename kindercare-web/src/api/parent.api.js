@@ -15,3 +15,6 @@ export const cancelCase = (caseId) => api.patch(`/parent/cases/${caseId}/cancel`
 export const requestAppointment = (payload) => api.post("/parent/appointments", payload);
 export const listAppointments = () => api.get("/parent/appointments");
 export const cancelAppointment = (id) => api.patch(`/parent/appointments/${id}/cancel`);
+
+// Clinics (used by parent appointments screen)
+export const listClinics = (params) => api.get("/public/clinics", { params });
